@@ -28,6 +28,11 @@ builder.Services.AddSwaggerGen(opt =>
     opt.IncludeXmlComments(xmlPath);
 });
 
+builder.Services.AddCors(c =>
+{
+    c.AddPolicy("AllowOrigin", options => options.AllowAnyHeader().AllowAnyOrigin().AllowAnyMethod());
+});
+
 builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 builder.Services.AddTransient<IUserManager, UserManager>();
 builder.Services.AddTransient<ILoginManager, LoginManager>();
@@ -41,6 +46,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseCors(options => options.AllowAnyHeader().AllowAnyOrigin().AllowAnyMethod());
+
 
 app.UseHttpsRedirection();
 

@@ -22,6 +22,7 @@ namespace IdentityServer.Models
         public int AccessFailedCount { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        public virtual Address Address { get; set; }
         public virtual List<UserLogin> UserLogin { get; set; }
         public virtual List<UserRole> UserRole { get; set; }
         public virtual List<Claim> Claim { get; set; }

@@ -1,6 +1,8 @@
-﻿using IdentityServer.Helper;
+﻿using IdentityServer.DTOs;
+using IdentityServer.Helper;
 using IdentityServer.Manager;
 using IdentityServer.Repositories;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
@@ -8,6 +10,7 @@ using Microsoft.Net.Http.Headers;
 namespace IdentityServer.Controllers
 {
     [Route("api/[controller]")]
+    [EnableCors("AllowOrigin")]
     [ApiController]
     public class UserController : ControllerBase
     {
@@ -19,20 +22,20 @@ namespace IdentityServer.Controllers
         }
 
         [HttpPut]
-        [Route("")]
+        [Route("CreateUser")]
         [Produces("application/json")]
-        public async Task<IActionResult> Create(string username = "Des", string password ="valami", string email="istvan.krasnyanszki@gmail.com", string lastname="Krasnyánszki", string fisrtname="István", string phonenumber = "0630-1132867")
+        public async Task<IActionResult> Create([FromBody] RegistrationDTO registration)
         {
             try
             {
-                userManager.CreateUser(username, password, email, lastname, fisrtname, phonenumber);
-                return StatusCode(201, "Ok");
+                userManager.CreateUser(registration);
+                return await Task.FromResult(StatusCode(201, "Ok"));
             }
             catch (InvalidDataException ex)
             {
                 return StatusCode(422, ex.Message);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, "Something went wrong");
             }
@@ -44,8 +47,18 @@ namespace IdentityServer.Controllers
         {
             try
             {
-                userManager.GetConfirmEmail(AuthToken);
-                return StatusCode(200, "Confirmed");
+                string email = "";
+                if (!string.IsNullOrEmpty(AuthToken))
+                {
+                    email = TokenHelper.GetUserFromToken(AuthToken);
+                    if (email == null) { throw new UnauthorizedAccessException("Unauthorized"); }
+                }
+                else
+                {
+                    throw new UnauthorizedAccessException("Unauthorized");
+                }
+                userManager.GetConfirmEmail(email);
+                return await Task.FromResult(StatusCode(200, "Confirmed"));
             }
             catch (SecurityTokenInvalidLifetimeException ex)
             {
@@ -55,7 +68,7 @@ namespace IdentityServer.Controllers
             {
                 return StatusCode(401, ex.Message);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, "Something went wrong");
             }
@@ -79,7 +92,7 @@ namespace IdentityServer.Controllers
                     throw new UnauthorizedAccessException("Unauthorized");
                 }
                 userManager.GetConfirmEmail(email);
-                return StatusCode(204, "Email Sended");
+                return await Task.FromResult(StatusCode(204, "Email Sended"));
             }
             catch (InvalidDataException ex)
             {
@@ -93,7 +106,46 @@ namespace IdentityServer.Controllers
             {
                 return StatusCode(401, ex.Message);
             }
-            catch (Exception ex)
+            catch (Exception)
+            {
+                return StatusCode(500, "Something went wrong");
+            }
+        }
+        [HttpGet]
+        [Route("Exist/{email}/{userName}")]
+        [Produces("application/json")]
+        public async Task<IActionResult> IsExist(string email, string userName)
+        {
+            try
+            {
+                var isExist = userManager.IsUserExist(email, userName);
+                if (isExist == "NotValidEmail")
+                {
+                    return await Task.FromResult(StatusCode(200, "NotValidEmail"));
+
+                }
+                else if (isExist == "Email UserName")
+                {
+                    return await Task.FromResult(StatusCode(200, "Username and Email exist"));
+                }
+                else if (isExist == "Email ")
+                {
+                    return await Task.FromResult(StatusCode(200, "Email exist"));
+                }
+                else if (isExist == "UserName")
+                {
+                    return await Task.FromResult(StatusCode(200, "Username exist"));
+                }
+                else
+                {
+                    return await Task.FromResult(StatusCode(200, "doesn't exist"));
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(401, ex.Message);
+            }
+            catch (Exception)
             {
                 return StatusCode(500, "Something went wrong");
             }
@@ -106,13 +158,13 @@ namespace IdentityServer.Controllers
             try
             {
                 userManager.GetResetPasswordEmail(email, userName);
-                return StatusCode(200, "Email Sended");
+                return await Task.FromResult(StatusCode(200, "Email Sended"));
             }
             catch (UnauthorizedAccessException ex)
             {
                 return StatusCode(401, ex.Message);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, "Something went wrong");
             }
@@ -120,7 +172,7 @@ namespace IdentityServer.Controllers
         [HttpGet]
         [Route("GetUser")]
         [Produces("application/json")]
-        public async Task<IActionResult> GetUser()
+        public async Task<IActionResult> GetUser(/*bool getAll = false*/)
         {
             try
             {
@@ -135,8 +187,8 @@ namespace IdentityServer.Controllers
                 {
                     throw new UnauthorizedAccessException("Unauthorized");
                 }
-                var user = userManager.GetUser(email);
-                return StatusCode(200, user);
+                var user = userManager.GetUser(email/*, getAll*/);
+                return await Task.FromResult(StatusCode(200, user));
             }
             catch (InvalidDataException ex)
             {
@@ -150,15 +202,15 @@ namespace IdentityServer.Controllers
             {
                 return StatusCode(401, ex.Message);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, "Something went wrong");
             }
         }
-        [HttpPost]
-        [Route("ChangePassword")]
+        [HttpPut]
+        [Route("ChangeDetails")]
         [Produces("application/json")]
-        public async Task<IActionResult> ChangePassword(string oldPassword, string newPassword)
+        public async Task<IActionResult> ChangeDetails([FromBody] ChangesDTO? changes)
         {
             try
             {
@@ -173,8 +225,8 @@ namespace IdentityServer.Controllers
                 {
                     throw new UnauthorizedAccessException("Unauthorized");
                 }
-                userManager.ChangePassword(email, newPassword);
-                return StatusCode(201, "Password Changed");
+                userManager.ChangeDetails(email, changes);
+                return await Task.FromResult(StatusCode(201, "Details Changed"));
             }
             catch (InvalidDataException ex)
             {
@@ -188,45 +240,7 @@ namespace IdentityServer.Controllers
             {
                 return StatusCode(401, ex.Message);
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Something went wrong");
-            }
-        }
-        [HttpPost]
-        [Route("ChangePhoneNumber")]
-        [Produces("application/json")]
-        public async Task<IActionResult> ChangePhoneNumber(string newPhoneNumber)
-        {
-            try
-            {
-                var tokenstring = Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", string.Empty);
-                string email = "";
-                if (!string.IsNullOrEmpty(tokenstring))
-                {
-                    email = TokenHelper.GetUserFromToken(tokenstring);
-                    if (email == null) { throw new UnauthorizedAccessException("Unauthorized"); }
-                }
-                else
-                {
-                    throw new UnauthorizedAccessException("Unauthorized");
-                }
-                userManager.ChangePhonaNumber(email, newPhoneNumber);
-                return StatusCode(201, "PhoneNumber Changed");
-            }
-            catch (InvalidDataException ex)
-            {
-                return StatusCode(422, ex.Message);
-            }
-            catch (SecurityTokenInvalidLifetimeException ex)
-            {
-                return StatusCode(401, ex.Message);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return StatusCode(401, ex.Message);
-            }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, "Something went wrong");
             }

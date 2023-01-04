@@ -4,12 +4,12 @@ namespace IdentityServer.Manager
 {
     public interface IUserManager
     {
+        void ChangeDetails(string email, ChangesDTO changes);
         void ConfirmEmail(string authToken);
-        void CreateUser(string username, string password, string email, string lastname, string fisrtname, string phonenumber);
+        void CreateUser(RegistrationDTO registration);
         void GetConfirmEmail(string email);
         void GetResetPasswordEmail(string email, string userName);
         UserDTO GetUser(string email);
-        void ChangePassword(string email, string newPassword);
-        void ChangePhonaNumber(string email, string newPhoneNumber);
+        string IsUserExist(string email, string userName);
     }
 }

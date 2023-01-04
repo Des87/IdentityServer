@@ -6,9 +6,9 @@ namespace IdentityServer.Repositories
 {
     public class UserRepository : IUserRepository
     {
-        private readonly IdentityDb identityDb;
+        private readonly dbContext identityDb;
 
-        public UserRepository(IdentityDb identityDb)
+        public UserRepository(dbContext identityDb)
         {
             this.identityDb = identityDb;
         }
@@ -24,7 +24,7 @@ namespace IdentityServer.Repositories
         }
         public User GetUserByEmail(string email)
         {
-            return identityDb.User.First(x => x.Email == email);
+            return identityDb.User.FirstOrDefault(x => x.Email == email);
         }
         public IQueryable<User> GetByCriteria(Expression<Func<User, bool>> predicate, bool includeRelatedEntities = true)
         {

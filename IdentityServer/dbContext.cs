@@ -1,12 +1,14 @@
-﻿using IdentityServer.Helper;
+﻿
+using IdentityServer.Helper;
 using IdentityServer.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace IdentityServer
 {
-    public class IdentityDb : DbContext
+    public class dbContext : DbContext
     {
-        public IdentityDb()
+        public dbContext()
         {
             Database.EnsureCreated();
         }
@@ -16,6 +18,8 @@ namespace IdentityServer
         public virtual DbSet<UserLogin>? UserLogin { get; set; }
         public virtual DbSet<Claim>? Claim { get; set; }
         public virtual DbSet<UserRole>? UserRole { get; set; }
+        public virtual DbSet<Address>? Address { get; set; }
+
 
 
 
@@ -41,6 +45,11 @@ namespace IdentityServer
               .WithMany(s => s.UserRole)
               .HasForeignKey(sc => sc.RoleId);
 
+            modelBuilder.Entity<User>()
+                .HasOne<Address>(s => s.Address)
+                .WithOne(s => s.User)
+                .HasForeignKey<Address>(s => s.UserId);
+
             var MyConfig = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
             var role = new Role()
             {
@@ -48,6 +57,7 @@ namespace IdentityServer
                 Name = "God Mode",
             };
             string password = MyConfig.GetValue<string>("Admin:password");
+          
             var admin = new User()
             {
                 Id = Guid.NewGuid(),
@@ -60,12 +70,20 @@ namespace IdentityServer
                 PhoneNumber = MyConfig.GetValue<string>("Admin:phoneNumber"),
                 UserName = MyConfig.GetValue<string>("Admin:userName"),
                 PhoneNumberConfirmed = true,
-                NeedNewPassword = false
+                NeedNewPassword = false,
             };
-
+            var address = new Address()
+            {
+                Id = Guid.NewGuid(),
+                City = MyConfig.GetValue<string>("Address:city"),
+                Street = MyConfig.GetValue<string>("Address:street"),
+                HouseNumber = MyConfig.GetValue<string>("Address:housenumber"),
+                UserId = admin.Id
+            };
             modelBuilder.Entity<User>().HasData(admin);
             modelBuilder.Entity<Role>().HasData(role);
-            modelBuilder.Entity<UserRole>().HasData(new UserRole() { RoleId = role.Id, UserId =admin.Id});
+            modelBuilder.Entity<Address>().HasData(address);
+            modelBuilder.Entity<UserRole>().HasData(new UserRole() { RoleId = role.Id, UserId = admin.Id });
             base.OnModelCreating(modelBuilder);
         }
     }

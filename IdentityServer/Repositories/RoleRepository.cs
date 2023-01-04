@@ -1,13 +1,14 @@
 ﻿using IdentityServer.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace IdentityServer.Repositories
 {
     public class RoleRepository : IRoleRepository
     {
-        private readonly IdentityDb identityDb;
+        private readonly dbContext identityDb;
 
-        public RoleRepository(IdentityDb identityDb)
+        public RoleRepository(dbContext identityDb)
         {
             this.identityDb = identityDb;
         }
